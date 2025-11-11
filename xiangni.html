@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我爱你</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .header {
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255,107,107,0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,107,107,0.6);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+        }
+
+        .windows-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .caring-window {
+            position: absolute;
+            width: 300px;
+            height: 150px;
+            background: #FFE4E1;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+            border: 2px solid rgba(255,255,255,0.8);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            animation: floatIn 0.5s ease-out;
+        }
+
+        .caring-window:hover {
+            transform: scale(1.05);
+        }
+
+        @keyframes floatIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .stats {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+
+            .caring-window {
+                width: 250px;
+                height: 130px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💖 关心提醒小助手 💖</h1>
+        </div>
+
+        <div class="control-panel">
+            <button class="btn" onclick="startCaring()">开始发送关心</button>
+            <button class="btn btn-stop" onclick="stopCaring()">停止发送</button>
+            <button class="btn" onclick="createSingleWindow()">单个关心窗口</button>
+        </div>
+
+        <div class="stats">
+            <p>已创建窗口: <span id="windowCount">0</span> | 状态: <span id="status">等待开始</span></p>
+        </div>
+    </div>
+
+    <div class="windows-container" id="windowsContainer"></div>
+
+    <script>
+        // 数据配置
+        const kaomojiList = [
+            '(´• ω •`)', '(≧∇≦)ﾉ', '(*´▽`*)', '(～￣▽￣)～',
+            '(๑•̀ㅂ•́)و✧', '(◕‿◕✿)', '（*´▽｀*）', 'ヽ(✿ﾟ▽ﾟ)ノ',
+            '(●´ω｀●)', '(´｡• ᵕ •｡`)', '(づ￣ ³￣)づ'
+        ];
+
+        const caringWords = [
+            "记得按时吃饭，身体最重要 🍚",
+            "今天有好好休息吗？别太累了 💤",
+            "天气变冷了，记得多穿衣服 🧥",
+            "不要太熬夜，早点休息 🌙",
+            "心情不好的时候，记得找我聊聊 💬",
+            "你最近还好吗？我很担心你 ❤️",
+            "累了就歇一歇，别勉强自己 🛋️",
+            "记得照顾好自己，我会心疼的 💕",
+            "你的一切我都放在心上 🎁",
+            "有什么困难一定要告诉我 🤝",
+            "你对我来说真的很重要 ⭐",
+            "别给自己太大压力，慢慢来 🐢",
+            "记得微笑，你笑起来最好看 😊",
+            "我会一直在这里支持你 🌈",
+            "你的健康快乐是我最关心的 💖",
+            "不管发生什么，我都在你身边 🤗",
+            "你值得被温柔对待 🌸",
+            "别忘记，你永远不是一个人 👫"
+        ];
+
+        const bgColors = [
+            '#FFE4E1', '#E6E6FA', '#F0FFF0', '#FFF0F5',
+            '#F5F5DC', '#F0F8FF', '#FFFACD', '#E0FFFF',
+            '#FFEFD5', '#FDF5E6', '#FFE4B5', '#F0E68C',
+            '#D8BFD8', '#FFDAB9', '#E6E6FA', '#B0E0E6'
+        ];
+
+        let windowCount = 0;
+        let isRunning = false;
+        let windowInterval;
+
+        // 创建关心窗口
+        function createCaringWindow() {
+            const container = document.getElementById('windowsContainer');
+            const windowElement = document.createElement('div');
+            windowElement.className = 'caring-window';
+
+            // 随机位置
+            const maxX = window.innerWidth - 300;
+            const maxY = window.innerHeight - 150;
+            const x = Math.floor(Math.random() * maxX);
+            const y = Math.floor(Math.random() * maxY);
+
+            // 随机内容
+            const caringWord = caringWords[Math.floor(Math.random() * caringWords.length)];
+            const kaomoji = kaomojiList[Math.floor(Math.random() * kaomojiList.length)];
+            const bgColor = bgColors[Math.floor(Math.random() * bgColors.length)];
+
+            windowElement.style.left = x + 'px';
+            windowElement.style.top = y + 'px';
+            windowElement.style.backgroundColor = bgColor;
+            windowElement.innerHTML = `
+                <div>
+                    <div style="font-weight: bold; margin-bottom: 8px;">${caringWord}</div>
+                    <div style="font-size: 20px;">${kaomoji}</div>
+                </div>
+            `;
+
+            // 点击关闭
+            windowElement.onclick = function() {
+                this.style.opacity = '0';
+                this.style.transform = 'scale(0.8)';
+                setTimeout(() => {
+                    container.removeChild(this);
+                    updateWindowCount(-1);
+                }, 300);
+            };
+
+            // 自动关闭
+            setTimeout(() => {
+                if (windowElement.parentNode) {
+                    windowElement.style.opacity = '0';
+                    windowElement.style.transform = 'scale(0.8)';
+                    setTimeout(() => {
+                        if (windowElement.parentNode) {
+                            container.removeChild(windowElement);
+                            updateWindowCount(-1);
+                        }
+                    }, 300);
+                }
+            }, 7000);
+
+            container.appendChild(windowElement);
+            updateWindowCount(1);
+        }
+
+        // 更新窗口计数
+        function updateWindowCount(change) {
+            windowCount += change;
+            document.getElementById('windowCount').textContent = windowCount;
+        }
+
+        // 开始发送关心
+        function startCaring() {
+            if (isRunning) return;
+
+            isRunning = true;
+            document.getElementById('status').textContent = '正在发送关心...';
+
+            let created = 0;
+            const maxWindows = 300; // 限制最大窗口数量
+
+            windowInterval = setInterval(() => {
+                if (created < maxWindows) {
+                    createCaringWindow();
+                    created++;
+                } else {
+                    stopCaring();
+                }
+            }, 200);
+        }
+
+        // 停止发送
+        function stopCaring() {
+            isRunning = false;
+            clearInterval(windowInterval);
+            document.getElementById('status').textContent = '已停止';
+        }
+
+        // 创建单个窗口
+        function createSingleWindow() {
+            createCaringWindow();
+            document.getElementById('status').textContent = '创建单个关心窗口';
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                createSingleWindow();
+            } else if (e.key === 'Escape') {
+                stopCaring();
+            } else if (e.key === ' ') {
+                if (isRunning) {
+                    stopCaring();
+                } else {
+                    startCaring();
+                }
+            }
+        });
+
+        // 初始提示
+        console.log('💝 关心提醒小助手已加载');
+        console.log('快捷键: 空格键 - 开始/停止, Enter - 单个窗口, ESC - 停止');
+    </script>
+</body>
+</html>
